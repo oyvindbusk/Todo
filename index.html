@@ -43,7 +43,7 @@
             font-size: 14px;
             font-weight: bold;
         }
-        .task.completed .task-text {
+        .task.completed .task-text, .task.completed .task-checkbox {
             text-decoration: line-through;
             color: #9ca3af;
         }
@@ -186,7 +186,7 @@
         let dailyTasks = [];
         let undatedTasks = [];
         let notes = [];
-        let datesWithTasks = new Set();
+        let datesWithTasks = new Map();
         let settingsDocRef = null;
         let dailyTasksCollectionRef = null;
         let undatedTasksCollectionRef = null;
@@ -487,7 +487,15 @@
             if (task.completed) row.classList.add('completed');
 
             const taskCell = document.createElement('td');
-            taskCell.classList.add('py-2', 'px-4', 'text-gray-700', 'task-text-cell');
+            taskCell.classList.add('py-2', 'px-4', 'text-gray-700', 'task-text-cell', 'flex', 'items-center');
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = task.completed;
+            checkbox.classList.add('form-checkbox', 'h-4', 'w-4', 'text-blue-600', 'rounded', 'mr-2');
+            checkbox.addEventListener('change', () => toggleTaskCompletion(task.id, checkbox.checked, collectionRef));
+            taskCell.appendChild(checkbox);
+
             const textSpan = document.createElement('span');
             textSpan.classList.add('task-text', 'block');
             textSpan.textContent = task.text;
@@ -504,17 +512,11 @@
             const actionsContainer = document.createElement('div');
             actionsContainer.classList.add('flex', 'space-x-2', 'justify-end');
             
-            const completeBtn = document.createElement('button');
-            completeBtn.classList.add('p-1', 'rounded-full', 'hover:bg-green-200', 'text-green-600', 'transition-all');
-            completeBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>`;
-            completeBtn.addEventListener('click', () => toggleTaskCompletion(task.id, task.completed, collectionRef));
-
             const deleteBtn = document.createElement('button');
             deleteBtn.classList.add('p-1', 'rounded-full', 'hover:bg-red-200', 'text-red-600', 'transition-all');
             deleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 112 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>`;
             deleteBtn.addEventListener('click', () => deleteTask(task.id, collectionRef));
 
-            actionsContainer.appendChild(completeBtn);
             actionsContainer.appendChild(deleteBtn);
             actionsCell.appendChild(actionsContainer);
 
