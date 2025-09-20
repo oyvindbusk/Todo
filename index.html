@@ -214,14 +214,6 @@
         });
 
         const setupFirebaseListeners = async (user) => {
-            userId = user.uid;
-            userInfoEl.textContent = `Logget inn som: ${user.displayName || user.email}`;
-            
-            loginView.classList.add('hidden');
-            viewButtons.classList.remove('hidden');
-            addItemContainer.classList.remove('hidden');
-            logoutBtn.classList.remove('hidden');
-
             const usersCollection = collection(db, `artifacts/${appId}/users`);
             const userSettingsCollectionRef = collection(usersCollection, userId, 'user_settings');
             settingsDocRef = doc(userSettingsCollectionRef, 'settings');
@@ -267,6 +259,14 @@
         
         onAuthStateChanged(auth, async (user) => {
             if (user) {
+                userId = user.uid;
+                userInfoEl.textContent = `Logget inn som: ${user.displayName || user.email}`;
+                
+                loginView.classList.add('hidden');
+                viewButtons.classList.remove('hidden');
+                addItemContainer.classList.remove('hidden');
+                logoutBtn.classList.remove('hidden');
+
                 await setupFirebaseListeners(user);
             } else {
                 loginView.classList.remove('hidden');
