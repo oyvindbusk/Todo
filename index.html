@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimalistisk Todo-app</title>
+    <!-- Tailwind CSS CDN for minimalistisk styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter font from Google Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .calendar-day {
+            position: relative;
+        }
+        .calendar-day.active {
+            background-color: #3b82f6;
+            color: white;
+            transform: scale(1.05);
+        }
+        .calendar-day.has-tasks::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+        }
+        .task.completed .task-text {
+            text-decoration: line-through;
+            color: #9ca3af;
+        }
+        .note-text:focus, .task-text:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white rounded-xl shadow-lg w-full max-w-2xl p-6 md:p-8 space-y-6">
+        <!-- Hovedtittel og visningstoggle -->
+        <div class="flex flex-col items-center space-y-4">
+            <h1 class="text-4xl font-bold text-gray-800 tracking-wider">Busks Todo</h1>
+            <div class="bg-gray-200 p-1 rounded-full flex space-x-1 w-full max-w-sm">
+                <button id="monthly-view-btn" class="flex-1 py-2 rounded-full font-semibold text-sm transition-all text-gray-800">Månedlig</button>
+                <button id="daily-view-btn" class="flex-1 py-2 rounded-full font-semibold text-sm transition-all text-gray-800">Daglig</button>
+                <button id="other-view-btn" class="flex-1 py-2 rounded-full font-semibold text-sm transition-all text-gray-800">Andre</button>
+                <button id="notes-view-btn" class="flex-1 py-2 rounded-full font-semibold text-sm transition-all text-gray-800">Notater</button>
+            </div>
+            <div id="user-info" class="text-gray-500 text-sm">Laster bruker...</div>
+        </div>
+
+        <!-- Månedlig visning -->
+        <div id="monthly-view" class="space-y-4 hidden">
+            <div class="bg-gray-50 p-4 rounded-xl shadow-sm space-y-4">
+                <div class="flex items-center justify-between text-gray-700">
+                    <button id="prev-month" class="p-2 rounded-full hover:bg-gray-200 focus:outline-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <h2 id="current-month-year" class="text-xl font-semibold"></h2>
+                    <button id="next-month" class="p-2 rounded-full hover:bg-gray-200 focus:outline-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="grid grid-cols-7 gap-1 text-center text-gray-500 text-xs font-semibold">
+                    <span>Søn</span><span>Man</span><span>Tir</span><span>Ons</span><span>Tor</span><span>Fre</span><span>Lør</span>
+                </div>
+                <div id="calendar-grid" class="grid grid-cols-7 gap-1"></div>
+            </div>
+            <div id="monthly-tasks-container" class="space-y-4">
+                <h3 id="monthly-tasks-header" class="text-2xl font-semibold text-gray-800 border-b pb-2">Velg en dato</h3>
+                <ul id="monthly-task-list" class="space-y-3"></ul>
+            </div>
+        </div>
+
+        <!-- Daglig visning -->
+        <div id="daily-view" class="space-y-4 hidden">
+            <h3 id="tasks-header" class="text-2xl font-semibold text-gray-800 border-b pb-2"></h3>
+            <ul id="task-list" class="space-y-3"></ul>
+        </div>
+
+        <!-- Andre visning -->
+        <div id="other-view" class="space-y-4 hidden">
+            <h3 class="text-2xl font-semibold text-gray-800 border-b pb-2">Andre oppgaver</h3>
+            <ul id="other-task-list" class="space-y-3"></ul>
+        </div>
+
+        <!-- Notater visning -->
+        <div id="notes-view" class="space-y-4 hidden">
+            <h3 class="text-2xl font-semibold text-gray-800 border-b pb-2">Notater</h3>
+            <ul id="notes-list" class="space-y-3"></ul>
+        </div>
+
+        <!-- Legg til-feltet, nå dynamisk basert på visning -->
+        <div id="add-item-container" class="space-y-4">
+            <div class="bg-gray-100 p-4 rounded-xl flex space-x-2">
+                <input type="text" id="new-item-input" placeholder="Skriv her..." class="flex-grow p-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                <button id="add-item-btn" class="bg-blue-600 text-white p-2 rounded-lg font-semibold shadow-md hover:bg-blue-700 transition-all flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, addDoc, onSnapshot, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        setLogLevel('debug');
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let userId = null;
+        let selectedDate = new Date();
+        const today = new Date();
+        let dailyTasks = [];
+        let undatedTasks = [];
+        let notes = [];
+        let datesWithTasks = new Set();
+        let settingsDocRef = null;
+        let dailyTasksCollectionRef = null;
+        let undatedTasksCollectionRef = null;
+        let notesCollectionRef = null;
+
+        let currentView = 'daily';
+
+        const calendarGrid = document.getElementById('calendar-grid');
+        const currentMonthYear = document.getElementById('current-month-year');
+        const dailyTaskList = document.getElementById('task-list');
+        const dailyTasksHeader = document.getElementById('tasks-header');
+        const newItemInput = document.getElementById('new-item-input');
+        const addItemBtn = document.getElementById('add-item-btn');
+        const prevMonthBtn = document.getElementById('prev-month');
+        const nextMonthBtn = document.getElementById('next-month');
+        const userInfoEl = document.getElementById('user-info');
+
+        const monthlyViewBtn = document.getElementById('monthly-view-btn');
+        const dailyViewBtn = document.getElementById('daily-view-btn');
+        const otherViewBtn = document.getElementById('other-view-btn');
+        const notesViewBtn = document.getElementById('notes-view-btn');
+
+        const monthlyViewContainer = document.getElementById('monthly-view');
+        const dailyViewContainer = document.getElementById('daily-view');
+        const otherViewContainer = document.getElementById('other-view');
+        const notesViewContainer = document.getElementById('notes-view');
+        const monthlyTasksContainer = document.getElementById('monthly-tasks-container');
+        const monthlyTasksHeader = document.getElementById('monthly-tasks-header');
+        const monthlyTaskList = document.getElementById('monthly-task-list');
+
+        const otherTaskList = document.getElementById('other-task-list');
+        const notesList = document.getElementById('notes-list');
+
+        const setupFirebaseListeners = async (user) => {
+            userId = user.uid;
+            userInfoEl.textContent = `Bruker-ID: ${userId}`;
+            
+            const usersCollection = collection(db, `artifacts/${appId}/users`);
+            const userSettingsCollectionRef = collection(usersCollection, userId, 'user_settings');
+            settingsDocRef = doc(userSettingsCollectionRef, 'settings');
+            dailyTasksCollectionRef = collection(usersCollection, userId, 'tasks');
+            undatedTasksCollectionRef = collection(usersCollection, userId, 'undated_tasks');
+            notesCollectionRef = collection(usersCollection, userId, 'notes');
+
+            onSnapshot(settingsDocRef, (docSnap) => {
+                const data = docSnap.data();
+                if (docSnap.exists() && data) {
+                    selectedDate = data.selectedDate ? new Date(data.selectedDate) : new Date();
+                    currentView = data.currentView !== undefined ? data.currentView : 'daily';
+                } else {
+                    selectedDate = new Date();
+                    currentView = 'daily';
+                }
+                updateView();
+            }, (error) => { console.error("Feil ved henting av innstillinger:", error); });
+
+            onSnapshot(dailyTasksCollectionRef, (querySnapshot) => {
+                dailyTasks = [];
+                datesWithTasks = new Set();
+                querySnapshot.forEach((doc) => {
+                    const taskData = doc.data();
+                    dailyTasks.push({ id: doc.id, ...taskData });
+                    datesWithTasks.add(taskData.date);
+                });
+                updateView();
+            }, (error) => { console.error("Feil ved henting av daglige oppgaver:", error); });
+
+            onSnapshot(undatedTasksCollectionRef, (querySnapshot) => {
+                undatedTasks = [];
+                querySnapshot.forEach((doc) => undatedTasks.push({ id: doc.id, ...doc.data() }));
+                updateView();
+            }, (error) => { console.error("Feil ved henting av andre oppgaver:", error); });
+
+            onSnapshot(notesCollectionRef, (querySnapshot) => {
+                notes = [];
+                querySnapshot.forEach((doc) => notes.push({ id: doc.id, ...doc.data() }));
+                updateView();
+            }, (error) => { console.error("Feil ved henting av notater:", error); });
+        };
+        
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                await setupFirebaseListeners(user);
+            } else {
+                try {
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+            console.error("Feil ved autentisering:", error);
+            userInfoEl.textContent = "Feil ved autentisering. Vennligst prøv igjen.";
+        }
+            }
+        });
+
+        const updateView = () => {
+            [monthlyViewContainer, dailyViewContainer, otherViewContainer, notesViewContainer].forEach(el => el.classList.add('hidden'));
+            [monthlyViewBtn, dailyViewBtn, otherViewBtn, notesViewBtn].forEach(btn => btn.classList.remove('bg-blue-600', 'text-white', 'shadow-md'));
+            
+            let placeholderText = "Skriv her...";
+            switch(currentView) {
+                case 'monthly':
+                    monthlyViewContainer.classList.remove('hidden');
+                    monthlyViewBtn.classList.add('bg-blue-600', 'text-white', 'shadow-md');
+                    renderCalendar();
+                    renderMonthlyTasks();
+                    break;
+                case 'daily':
+                    dailyViewContainer.classList.remove('hidden');
+                    dailyViewBtn.classList.add('bg-blue-600', 'text-white', 'shadow-md');
+                    renderDailyTasks();
+                    placeholderText = "Legg til oppgave...";
+                    break;
+                case 'other':
+                    otherViewContainer.classList.remove('hidden');
+                    otherViewBtn.classList.add('bg-blue-600', 'text-white', 'shadow-md');
+                    renderOtherTasks();
+                    placeholderText = "Legg til annen oppgave...";
+                    break;
+                case 'notes':
+                    notesViewContainer.classList.remove('hidden');
+                    notesViewBtn.classList.add('bg-blue-600', 'text-white', 'shadow-md');
+                    renderNotes();
+                    placeholderText = "Legg til notat...";
+                    break;
+            }
+            newItemInput.placeholder = placeholderText;
+        };
+
+        const setView = async (viewName) => {
+            currentView = viewName;
+            try {
+                await setDoc(settingsDocRef, { currentView: viewName }, { merge: true });
+            } catch (e) {
+                console.error("Feil ved lagring av visning:", e);
+            }
+        };
+        
+        monthlyViewBtn.addEventListener('click', () => setView('monthly'));
+        dailyViewBtn.addEventListener('click', () => setView('daily'));
+        otherViewBtn.addEventListener('click', () => setView('other'));
+        notesViewBtn.addEventListener('click', () => setView('notes'));
+
+        const formatDate = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
+        const renderCalendar = () => {
+            calendarGrid.innerHTML = '';
+            const currentMonth = selectedDate.getMonth();
+            const currentYear = selectedDate.getFullYear();
+            currentMonthYear.textContent = new Date(currentYear, currentMonth).toLocaleDateString('no-NO', { month: 'long', year: 'numeric' });
+
+            const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+            const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+            const startDayOfWeek = firstDayOfMonth.getDay();
+
+            for (let i = 0; i < startDayOfWeek; i++) {
+                calendarGrid.appendChild(document.createElement('div'));
+            }
+
+            for (let day = 1; day <= lastDayOfMonth.getDate(); day++) {
+                const dayEl = document.createElement('div');
+                const date = new Date(currentYear, currentMonth, day);
+                const formattedDate = formatDate(date);
+
+                dayEl.classList.add('calendar-day', 'w-8', 'h-8', 'rounded-full', 'cursor-pointer', 'transition-all', 'text-center', 'font-medium', 'flex', 'items-center', 'justify-center', 'text-xs');
+                dayEl.textContent = day;
+                dayEl.dataset.date = formattedDate;
+
+                if (formattedDate === formatDate(selectedDate)) {
+                    dayEl.classList.add('bg-blue-600', 'text-white', 'shadow-md');
+                } else {
+                    dayEl.classList.add('bg-gray-200', 'text-gray-800', 'hover:bg-gray-300');
+                }
+
+                if (datesWithTasks.has(formattedDate)) {
+                    dayEl.classList.add('has-tasks');
+                }
+
+                if (formattedDate === formatDate(today)) {
+                    dayEl.classList.add('border', 'border-gray-500');
+                }
+                
+                dayEl.addEventListener('click', () => selectDate(date));
+                calendarGrid.appendChild(dayEl);
+            }
+        };
+
+        const renderDailyTasks = () => {
+            const formattedDate = formatDate(selectedDate);
+            dailyTasksHeader.textContent = selectedDate.toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long' });
+            dailyTaskList.innerHTML = '';
+            const tasksForDate = dailyTasks.filter(task => task.date === formattedDate);
+            if (tasksForDate.length === 0) {
+                dailyTaskList.innerHTML = '<li class="text-gray-500 italic">Ingen oppgaver for denne dagen.</li>';
+            } else {
+                tasksForDate.forEach(task => dailyTaskList.appendChild(createTaskItem(task, dailyTasksCollectionRef)));
+            }
+        };
+
+        const renderMonthlyTasks = () => {
+            const formattedDate = formatDate(selectedDate);
+            monthlyTasksHeader.textContent = `Oppgaver for ${selectedDate.toLocaleDateString('no-NO', { weekday: 'long', day: 'numeric', month: 'long' })}`;
+            monthlyTaskList.innerHTML = '';
+            const tasksForDate = dailyTasks.filter(task => task.date === formattedDate);
+            if (tasksForDate.length === 0) {
+                monthlyTaskList.innerHTML = '<li class="text-gray-500 italic">Ingen oppgaver for denne dagen.</li>';
+            } else {
+                tasksForDate.forEach(task => monthlyTaskList.appendChild(createTaskItem(task, dailyTasksCollectionRef)));
+            }
+        };
+
+        const renderOtherTasks = () => {
+            otherTaskList.innerHTML = '';
+            if (undatedTasks.length === 0) {
+                otherTaskList.innerHTML = '<li class="text-gray-500 italic">Ingen andre oppgaver.</li>';
+            } else {
+                undatedTasks.forEach(task => otherTaskList.appendChild(createTaskItem(task, undatedTasksCollectionRef)));
+            }
+        };
+        
+        const renderNotes = () => {
+            notesList.innerHTML = '';
+            if (notes.length === 0) {
+                notesList.innerHTML = '<li class="text-gray-500 italic">Ingen notater.</li>';
+            } else {
+                notes.forEach(note => notesList.appendChild(createNoteItem(note)));
+            }
+        };
+
+        const createTaskItem = (task, collectionRef) => {
+            const item = document.createElement('li');
+            item.classList.add('task', 'flex', 'items-center', 'justify-between', 'bg-gray-50', 'p-4', 'rounded-xl', 'shadow-sm', 'transition-all');
+            if (task.completed) item.classList.add('completed');
+
+            const textSpan = document.createElement('span');
+            textSpan.classList.add('task-text', 'flex-grow', 'text-gray-700');
+            textSpan.textContent = task.text;
+            textSpan.contentEditable = true;
+            textSpan.addEventListener('blur', () => updateTaskText(task.id, textSpan.textContent, collectionRef));
+
+            const actionsContainer = document.createElement('div');
+            actionsContainer.classList.add('flex', 'space-x-2', 'ml-4');
+            
+            const completeBtn = document.createElement('button');
+            completeBtn.classList.add('p-1', 'rounded-full', 'hover:bg-green-200', 'text-green-600', 'transition-all');
+            completeBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>`;
+            completeBtn.addEventListener('click', () => toggleTaskCompletion(task.id, task.completed, collectionRef));
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.classList.add('p-1', 'rounded-full', 'hover:bg-red-200', 'text-red-600', 'transition-all');
+            deleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 112 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>`;
+            deleteBtn.addEventListener('click', () => deleteTask(task.id, collectionRef));
+            
+            actionsContainer.appendChild(completeBtn);
+            actionsContainer.appendChild(deleteBtn);
+            item.appendChild(textSpan);
+            item.appendChild(actionsContainer);
+            return item;
+        };
+
+        const createNoteItem = (note) => {
+            const item = document.createElement('li');
+            item.classList.add('note', 'flex', 'items-start', 'justify-between', 'bg-gray-50', 'p-4', 'rounded-xl', 'shadow-sm', 'transition-all');
+            
+            // Container for text and date
+            const contentContainer = document.createElement('div');
+            contentContainer.classList.add('flex-grow', 'space-y-1');
+
+            const textSpan = document.createElement('span');
+            textSpan.classList.add('note-text', 'block', 'text-gray-700');
+            textSpan.textContent = note.text;
+            textSpan.contentEditable = true;
+            textSpan.addEventListener('blur', () => updateNoteText(note.id, textSpan.textContent));
+            
+            const dateSpan = document.createElement('span');
+            dateSpan.classList.add('text-gray-400', 'text-xs', 'italic');
+            if (note.createdAt && note.createdAt.seconds) {
+                const creationDate = new Date(note.createdAt.seconds * 1000);
+                dateSpan.textContent = `Skrevet: ${creationDate.toLocaleDateString('no-NO')}`;
+            }
+
+            contentContainer.appendChild(textSpan);
+            contentContainer.appendChild(dateSpan);
+
+            const actionsContainer = document.createElement('div');
+            actionsContainer.classList.add('ml-4');
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.classList.add('p-1', 'rounded-full', 'hover:bg-red-200', 'text-red-600', 'transition-all');
+            deleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 112 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>`;
+            deleteBtn.addEventListener('click', () => deleteNote(note.id));
+
+            actionsContainer.appendChild(deleteBtn);
+            item.appendChild(contentContainer);
+            item.appendChild(actionsContainer);
+            return item;
+        };
+
+        const handleMonthChange = (offset) => {
+            const newDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + offset, 1);
+            selectDate(newDate);
+        };
+        prevMonthBtn.addEventListener('click', () => handleMonthChange(-1));
+        nextMonthBtn.addEventListener('click', () => handleMonthChange(1));
+        
+        addItemBtn.addEventListener('click', () => {
+            const text = newItemInput.value.trim();
+            if (text === "") return;
+            switch(currentView) {
+                case 'daily':
+                case 'monthly':
+                    addTask(text, dailyTasksCollectionRef);
+                    break;
+                case 'other':
+                    addTask(text, undatedTasksCollectionRef);
+                    break;
+                case 'notes':
+                    addNote(text);
+                    break;
+            }
+            newItemInput.value = '';
+        });
+        newItemInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                addItemBtn.click();
+            }
+        });
+
+        const addTask = async (text, collectionRef) => {
+            try {
+                const docData = { text, completed: false, createdAt: new Date() };
+                if (collectionRef === dailyTasksCollectionRef) {
+                    docData.date = formatDate(selectedDate);
+                }
+                await addDoc(collectionRef, docData);
+            } catch (e) {
+                console.error("Feil ved tillegg av oppgave:", e);
+            }
+        };
+
+        const updateTaskText = async (taskId, newText, collectionRef) => {
+            if (newText.trim() === '') {
+                deleteTask(taskId, collectionRef);
+                return;
+            }
+            const taskDocRef = doc(collectionRef, taskId);
+            try {
+                await setDoc(taskDocRef, { text: newText }, { merge: true });
+            } catch (e) {
+                console.error("Feil ved oppdatering av oppgave:", e);
+            }
+        };
+
+        const toggleTaskCompletion = async (taskId, currentCompletionStatus, collectionRef) => {
+            const taskDocRef = doc(collectionRef, taskId);
+            try {
+                await setDoc(taskDocRef, { completed: !currentCompletionStatus }, { merge: true });
+            } catch (e) {
+                console.error("Feil ved oppdatering av oppgave:", e);
+            }
+        };
+
+        const deleteTask = async (taskId, collectionRef) => {
+            const taskDocRef = doc(collectionRef, taskId);
+            try {
+                await deleteDoc(taskDocRef);
+            } catch (e) {
+                console.error("Feil ved sletting av oppgave:", e);
+            }
+        };
+
+        const addNote = async (text) => {
+            try {
+                await addDoc(notesCollectionRef, { text, createdAt: new Date() });
+            } catch (e) {
+                console.error("Feil ved tillegg av notat:", e);
+            }
+        };
+
+        const updateNoteText = async (noteId, newText) => {
+            if (newText.trim() === '') {
+                deleteNote(noteId);
+                return;
+            }
+            const noteDocRef = doc(notesCollectionRef, noteId);
+            try {
+                await setDoc(noteDocRef, { text: newText }, { merge: true });
+            } catch (e) {
+                console.error("Feil ved oppdatering av notat:", e);
+            }
+        };
+
+        const deleteNote = async (noteId) => {
+            const noteDocRef = doc(notesCollectionRef, noteId);
+            try {
+                await deleteDoc(noteDocRef);
+            } catch (e) {
+                console.error("Feil ved sletting av notat:", e);
+            }
+        };
+
+        const selectDate = async (date) => {
+            selectedDate = date;
+            const formattedDate = formatDate(selectedDate);
+            try {
+                await setDoc(settingsDocRef, { selectedDate: formattedDate }, { merge: true });
+            } catch (e) {
+                console.error("Feil ved lagring av valgt dato:", e);
+            }
+        };
+    </script>
+</body>
+</html>
+
