@@ -55,7 +55,7 @@
             <div id="view-buttons" class="bg-gray-200 p-1 rounded-full flex space-x-1 w-full max-w-sm hidden">
                 <button id="monthly-view-btn" class="flex-1 py-2 rounded-full font-semibold text-sm transition-all text-gray-800">Månedlig</button>
                 <button id="daily-view-btn" class="flex-1 py-2 rounded-full font-semibold text-sm transition-all text-gray-800">Daglig</button>
-                <button id="other-view-btn" class="flex-1 py-2 rounded-full font-semibold text-sm transition-all text-gray-800">Andre</button>
+                <button id="all-tasks-view-btn" class="flex-1 py-2 rounded-full font-semibold text-sm transition-all text-gray-800">Alle oppgaver</button>
                 <button id="notes-view-btn" class="flex-1 py-2 rounded-full font-semibold text-sm transition-all text-gray-800">Notater</button>
             </div>
         </div>
@@ -102,10 +102,23 @@
             <ul id="task-list" class="space-y-3"></ul>
         </div>
 
-        <!-- Andre visning -->
-        <div id="other-view" class="space-y-4 hidden">
-            <h3 class="text-2xl font-semibold text-gray-800 border-b pb-2">Andre oppgaver</h3>
-            <ul id="other-task-list" class="space-y-3"></ul>
+        <!-- Alle oppgaver-visning -->
+        <div id="all-tasks-view" class="space-y-4 hidden">
+            <h3 class="text-2xl font-semibold text-gray-800 border-b pb-2">Alle oppgaver</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white rounded-lg shadow-md">
+                    <thead class="bg-gray-200">
+                        <tr>
+                            <th class="py-2 px-4 text-left text-sm font-semibold text-gray-600">Oppgave</th>
+                            <th class="py-2 px-4 text-left text-sm font-semibold text-gray-600">Dato</th>
+                            <th class="py-2 px-4 text-right text-sm font-semibold text-gray-600"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="all-tasks-table-body">
+                        <!-- Tasks will be rendered here -->
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Notater visning -->
@@ -181,17 +194,17 @@
 
         const monthlyViewBtn = document.getElementById('monthly-view-btn');
         const dailyViewBtn = document.getElementById('daily-view-btn');
-        const otherViewBtn = document.getElementById('other-view-btn');
+        const allTasksViewBtn = document.getElementById('all-tasks-view-btn');
         const notesViewBtn = document.getElementById('notes-view-btn');
 
         const monthlyViewContainer = document.getElementById('monthly-view');
         const dailyViewContainer = document.getElementById('daily-view');
-        const otherViewContainer = document.getElementById('other-view');
+        const allTasksViewContainer = document.getElementById('all-tasks-view');
         const notesViewContainer = document.getElementById('notes-view');
         const monthlyTasksContainer = document.getElementById('monthly-tasks-container');
         const monthlyTasksHeader = document.getElementById('monthly-tasks-header');
         const monthlyTaskList = document.getElementById('monthly-task-list');
-
+        const allTasksTableBody = document.getElementById('all-tasks-table-body');
         const otherTaskList = document.getElementById('other-task-list');
         const notesList = document.getElementById('notes-list');
 
@@ -278,8 +291,8 @@
         });
 
         const updateView = () => {
-            [monthlyViewContainer, dailyViewContainer, otherViewContainer, notesViewContainer].forEach(el => el.classList.add('hidden'));
-            [monthlyViewBtn, dailyViewBtn, otherViewBtn, notesViewBtn].forEach(btn => btn.classList.remove('bg-blue-600', 'text-white', 'shadow-md'));
+            [monthlyViewContainer, dailyViewContainer, allTasksViewContainer, notesViewContainer].forEach(el => el.classList.add('hidden'));
+            [monthlyViewBtn, dailyViewBtn, allTasksViewBtn, notesViewBtn].forEach(btn => btn.classList.remove('bg-blue-600', 'text-white', 'shadow-md'));
             
             let placeholderText = "Skriv her...";
             switch(currentView) {
@@ -295,11 +308,11 @@
                     renderDailyTasks();
                     placeholderText = "Legg til oppgave...";
                     break;
-                case 'other':
-                    otherViewContainer.classList.remove('hidden');
-                    otherViewBtn.classList.add('bg-blue-600', 'text-white', 'shadow-md');
-                    renderOtherTasks();
-                    placeholderText = "Legg til annen oppgave...";
+                case 'all-tasks':
+                    allTasksViewContainer.classList.remove('hidden');
+                    allTasksViewBtn.classList.add('bg-blue-600', 'text-white', 'shadow-md');
+                    renderAllTasks();
+                    placeholderText = "Legg til oppgave...";
                     break;
                 case 'notes':
                     notesViewContainer.classList.remove('hidden');
@@ -322,7 +335,7 @@
         
         monthlyViewBtn.addEventListener('click', () => setView('monthly'));
         dailyViewBtn.addEventListener('click', () => setView('daily'));
-        otherViewBtn.addEventListener('click', () => setView('other'));
+        allTasksViewBtn.addEventListener('click', () => setView('all-tasks'));
         notesViewBtn.addEventListener('click', () => setView('notes'));
 
         const formatDate = (date) => {
@@ -397,14 +410,68 @@
                 tasksForDate.forEach(task => monthlyTaskList.appendChild(createTaskItem(task, dailyTasksCollectionRef)));
             }
         };
+        
+        const renderAllTasks = () => {
+            allTasksTableBody.innerHTML = '';
+            const allTasks = [...dailyTasks, ...undatedTasks];
+            allTasks.sort((a, b) => {
+                const dateA = a.date || '9999-12-31';
+                const dateB = b.date || '9999-12-31';
+                return dateA.localeCompare(dateB);
+            });
 
-        const renderOtherTasks = () => {
-            otherTaskList.innerHTML = '';
-            if (undatedTasks.length === 0) {
-                otherTaskList.innerHTML = '<li class="text-gray-500 italic">Ingen andre oppgaver.</li>';
+            if (allTasks.length === 0) {
+                allTasksTableBody.innerHTML = '<tr><td colspan="3" class="text-gray-500 italic text-center py-4">Ingen oppgaver funnet.</td></tr>';
             } else {
-                undatedTasks.forEach(task => otherTaskList.appendChild(createTaskItem(task, undatedTasksCollectionRef)));
+                allTasks.forEach(task => {
+                    const collectionRef = task.date ? dailyTasksCollectionRef : undatedTasksCollectionRef;
+                    allTasksTableBody.appendChild(createTaskTableRow(task, collectionRef));
+                });
             }
+        };
+        
+        const createTaskTableRow = (task, collectionRef) => {
+            const row = document.createElement('tr');
+            row.classList.add('border-b', 'hover:bg-gray-50', 'transition-colors');
+            if (task.completed) row.classList.add('completed');
+
+            const taskCell = document.createElement('td');
+            taskCell.classList.add('py-2', 'px-4', 'text-gray-700', 'task-text-cell');
+            const textSpan = document.createElement('span');
+            textSpan.classList.add('task-text', 'block');
+            textSpan.textContent = task.text;
+            textSpan.contentEditable = true;
+            textSpan.addEventListener('blur', () => updateTaskText(task.id, textSpan.textContent, collectionRef));
+            taskCell.appendChild(textSpan);
+
+            const dateCell = document.createElement('td');
+            dateCell.classList.add('py-2', 'px-4', 'text-sm', 'text-gray-500');
+            dateCell.textContent = task.date ? new Date(task.date).toLocaleDateString('no-NO') : 'Ingen dato';
+
+            const actionsCell = document.createElement('td');
+            actionsCell.classList.add('py-2', 'px-4', 'text-right');
+            const actionsContainer = document.createElement('div');
+            actionsContainer.classList.add('flex', 'space-x-2', 'justify-end');
+            
+            const completeBtn = document.createElement('button');
+            completeBtn.classList.add('p-1', 'rounded-full', 'hover:bg-green-200', 'text-green-600', 'transition-all');
+            completeBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>`;
+            completeBtn.addEventListener('click', () => toggleTaskCompletion(task.id, task.completed, collectionRef));
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.classList.add('p-1', 'rounded-full', 'hover:bg-red-200', 'text-red-600', 'transition-all');
+            deleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 112 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>`;
+            deleteBtn.addEventListener('click', () => deleteTask(task.id, collectionRef));
+
+            actionsContainer.appendChild(completeBtn);
+            actionsContainer.appendChild(deleteBtn);
+            actionsCell.appendChild(actionsContainer);
+
+            row.appendChild(taskCell);
+            row.appendChild(dateCell);
+            row.appendChild(actionsCell);
+
+            return row;
         };
         
         const renderNotes = () => {
@@ -498,10 +565,8 @@
             switch(currentView) {
                 case 'daily':
                 case 'monthly':
+                case 'all-tasks':
                     addTask(text, dailyTasksCollectionRef);
-                    break;
-                case 'other':
-                    addTask(text, undatedTasksCollectionRef);
                     break;
                 case 'notes':
                     addNote(text);
