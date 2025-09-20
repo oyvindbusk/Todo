@@ -56,6 +56,7 @@
                 <button id="monthly-view-btn" class="flex-1 py-2 rounded-full font-semibold text-sm transition-all text-gray-800">Månedlig</button>
                 <button id="daily-view-btn" class="flex-1 py-2 rounded-full font-semibold text-sm transition-all text-gray-800">Daglig</button>
                 <button id="all-tasks-view-btn" class="flex-1 py-2 rounded-full font-semibold text-sm transition-all text-gray-800">Alle oppgaver</button>
+                <button id="other-tasks-view-btn" class="flex-1 py-2 rounded-full font-semibold text-sm transition-all text-gray-800">Andre oppgaver</button>
                 <button id="notes-view-btn" class="flex-1 py-2 rounded-full font-semibold text-sm transition-all text-gray-800">Notater</button>
             </div>
         </div>
@@ -119,6 +120,12 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+        
+        <!-- Andre oppgaver-visning -->
+        <div id="other-tasks-view" class="space-y-4 hidden">
+            <h3 class="text-2xl font-semibold text-gray-800 border-b pb-2">Andre oppgaver</h3>
+            <ul id="other-task-list" class="space-y-3"></ul>
         </div>
 
         <!-- Notater visning -->
@@ -195,11 +202,13 @@
         const monthlyViewBtn = document.getElementById('monthly-view-btn');
         const dailyViewBtn = document.getElementById('daily-view-btn');
         const allTasksViewBtn = document.getElementById('all-tasks-view-btn');
+        const otherTasksViewBtn = document.getElementById('other-tasks-view-btn');
         const notesViewBtn = document.getElementById('notes-view-btn');
 
         const monthlyViewContainer = document.getElementById('monthly-view');
         const dailyViewContainer = document.getElementById('daily-view');
         const allTasksViewContainer = document.getElementById('all-tasks-view');
+        const otherTasksViewContainer = document.getElementById('other-tasks-view');
         const notesViewContainer = document.getElementById('notes-view');
         const monthlyTasksContainer = document.getElementById('monthly-tasks-container');
         const monthlyTasksHeader = document.getElementById('monthly-tasks-header');
@@ -291,8 +300,8 @@
         });
 
         const updateView = () => {
-            [monthlyViewContainer, dailyViewContainer, allTasksViewContainer, notesViewContainer].forEach(el => el.classList.add('hidden'));
-            [monthlyViewBtn, dailyViewBtn, allTasksViewBtn, notesViewBtn].forEach(btn => btn.classList.remove('bg-blue-600', 'text-white', 'shadow-md'));
+            [monthlyViewContainer, dailyViewContainer, allTasksViewContainer, otherTasksViewContainer, notesViewContainer].forEach(el => el.classList.add('hidden'));
+            [monthlyViewBtn, dailyViewBtn, allTasksViewBtn, otherTasksViewBtn, notesViewBtn].forEach(btn => btn.classList.remove('bg-blue-600', 'text-white', 'shadow-md'));
             
             let placeholderText = "Skriv her...";
             switch(currentView) {
@@ -313,6 +322,12 @@
                     allTasksViewBtn.classList.add('bg-blue-600', 'text-white', 'shadow-md');
                     renderAllTasks();
                     placeholderText = "Legg til oppgave...";
+                    break;
+                case 'other':
+                    otherTasksViewContainer.classList.remove('hidden');
+                    otherTasksViewBtn.classList.add('bg-blue-600', 'text-white', 'shadow-md');
+                    renderOtherTasks();
+                    placeholderText = "Legg til oppgave uten dato...";
                     break;
                 case 'notes':
                     notesViewContainer.classList.remove('hidden');
@@ -336,6 +351,7 @@
         monthlyViewBtn.addEventListener('click', () => setView('monthly'));
         dailyViewBtn.addEventListener('click', () => setView('daily'));
         allTasksViewBtn.addEventListener('click', () => setView('all-tasks'));
+        otherTasksViewBtn.addEventListener('click', () => setView('other'));
         notesViewBtn.addEventListener('click', () => setView('notes'));
 
         const formatDate = (date) => {
@@ -427,6 +443,15 @@
                     const collectionRef = task.date ? dailyTasksCollectionRef : undatedTasksCollectionRef;
                     allTasksTableBody.appendChild(createTaskTableRow(task, collectionRef));
                 });
+            }
+        };
+
+        const renderOtherTasks = () => {
+            otherTaskList.innerHTML = '';
+            if (undatedTasks.length === 0) {
+                otherTaskList.innerHTML = '<li class="text-gray-500 italic">Ingen oppgaver uten dato.</li>';
+            } else {
+                undatedTasks.forEach(task => otherTaskList.appendChild(createTaskItem(task, undatedTasksCollectionRef)));
             }
         };
         
@@ -565,8 +590,11 @@
             switch(currentView) {
                 case 'daily':
                 case 'monthly':
-                case 'all-tasks':
                     addTask(text, dailyTasksCollectionRef);
+                    break;
+                case 'all-tasks':
+                case 'other':
+                    addTask(text, undatedTasksCollectionRef);
                     break;
                 case 'notes':
                     addNote(text);
