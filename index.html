@@ -20,7 +20,8 @@
             color: white;
             transform: scale(1.05);
         }
-        .calendar-day.has-tasks::after {
+        /* Style for dager med ufullførte oppgaver */
+        .calendar-day.has-uncompleted-tasks::after {
             content: '';
             position: absolute;
             bottom: 2px;
@@ -28,8 +29,19 @@
             transform: translateX(-50%);
             width: 4px;
             height: 4px;
-            background-color: #3b82f6;
+            background-color: #9ca3af;
             border-radius: 50%;
+        }
+        /* Style for dager der alle oppgaver er fullført */
+        .calendar-day.all-tasks-completed::after {
+            content: '✓';
+            position: absolute;
+            bottom: 0px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #10B981;
+            font-size: 14px;
+            font-weight: bold;
         }
         .task.completed .task-text {
             text-decoration: line-through;
@@ -390,8 +402,15 @@
                     dayEl.classList.add('bg-gray-200', 'text-gray-800', 'hover:bg-gray-300');
                 }
 
-                if (datesWithTasks.has(formattedDate)) {
-                    dayEl.classList.add('has-tasks');
+                // Sjekk status for oppgaver på denne datoen
+                const tasksForDate = dailyTasks.filter(task => task.date === formattedDate);
+                if (tasksForDate.length > 0) {
+                    const allCompleted = tasksForDate.every(task => task.completed);
+                    if (allCompleted) {
+                        dayEl.classList.add('all-tasks-completed');
+                    } else {
+                        dayEl.classList.add('has-uncompleted-tasks');
+                    }
                 }
 
                 if (formattedDate === formatDate(today)) {
