@@ -269,11 +269,19 @@
 
             onSnapshot(dailyTasksCollectionRef, (querySnapshot) => {
                 dailyTasks = [];
-                datesWithTasks = new Set();
+                datesWithTasks = new Map();
                 querySnapshot.forEach((doc) => {
                     const taskData = doc.data();
                     dailyTasks.push({ id: doc.id, ...taskData });
-                    datesWithTasks.add(taskData.date);
+                    const date = taskData.date;
+                    if (!datesWithTasks.has(date)) {
+                        datesWithTasks.set(date, { total: 0, completed: 0 });
+                    }
+                    const status = datesWithTasks.get(date);
+                    status.total++;
+                    if (taskData.completed) {
+                        status.completed++;
+                    }
                 });
                 updateView();
             }, (error) => { console.error("Feil ved henting av daglige oppgaver:", error); });
@@ -403,10 +411,9 @@
                 }
 
                 // Sjekk status for oppgaver på denne datoen
-                const tasksForDate = dailyTasks.filter(task => task.date === formattedDate);
-                if (tasksForDate.length > 0) {
-                    const allCompleted = tasksForDate.every(task => task.completed);
-                    if (allCompleted) {
+                const dateStatus = datesWithTasks.get(formattedDate);
+                if (dateStatus) {
+                    if (dateStatus.completed === dateStatus.total) {
                         dayEl.classList.add('all-tasks-completed');
                     } else {
                         dayEl.classList.add('has-uncompleted-tasks');
