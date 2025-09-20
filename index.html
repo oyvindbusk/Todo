@@ -45,16 +45,19 @@
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
 
     <div id="app-container" class="bg-white rounded-xl shadow-lg w-full max-w-2xl p-6 md:p-8 space-y-6">
-        <!-- Hovedtittel og visningstoggle -->
+        <!-- Hovedtittel, visningstoggle og logg ut knapp -->
         <div class="flex flex-col items-center space-y-4">
             <h1 class="text-4xl font-bold text-gray-800 tracking-wider">Busks Todo</h1>
+            <div class="flex items-center space-x-2">
+                <div id="user-info" class="text-gray-500 text-sm">Laster bruker...</div>
+                <button id="logout-btn" class="hidden text-sm text-gray-500 hover:text-red-500 transition-all font-semibold">Logg ut</button>
+            </div>
             <div id="view-buttons" class="bg-gray-200 p-1 rounded-full flex space-x-1 w-full max-w-sm hidden">
                 <button id="monthly-view-btn" class="flex-1 py-2 rounded-full font-semibold text-sm transition-all text-gray-800">Månedlig</button>
                 <button id="daily-view-btn" class="flex-1 py-2 rounded-full font-semibold text-sm transition-all text-gray-800">Daglig</button>
                 <button id="other-view-btn" class="flex-1 py-2 rounded-full font-semibold text-sm transition-all text-gray-800">Andre</button>
                 <button id="notes-view-btn" class="flex-1 py-2 rounded-full font-semibold text-sm transition-all text-gray-800">Notater</button>
             </div>
-            <div id="user-info" class="text-gray-500 text-sm">Laster bruker...</div>
         </div>
         
         <!-- Login View -->
@@ -127,7 +130,7 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, addDoc, onSnapshot, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         setLogLevel('debug');
@@ -174,6 +177,7 @@
         const prevMonthBtn = document.getElementById('prev-month');
         const nextMonthBtn = document.getElementById('next-month');
         const userInfoEl = document.getElementById('user-info');
+        const logoutBtn = document.getElementById('logout-btn');
 
         const monthlyViewBtn = document.getElementById('monthly-view-btn');
         const dailyViewBtn = document.getElementById('daily-view-btn');
@@ -201,6 +205,14 @@
             }
         });
 
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+            } catch (error) {
+                console.error("Feil ved utlogging:", error);
+            }
+        });
+
         const setupFirebaseListeners = async (user) => {
             userId = user.uid;
             userInfoEl.textContent = `Logget inn som: ${user.displayName || user.email}`;
@@ -208,6 +220,7 @@
             loginView.classList.add('hidden');
             viewButtons.classList.remove('hidden');
             addItemContainer.classList.remove('hidden');
+            logoutBtn.classList.remove('hidden');
 
             const usersCollection = collection(db, `artifacts/${appId}/users`);
             const userSettingsCollectionRef = collection(usersCollection, userId, 'user_settings');
@@ -259,6 +272,7 @@
                 loginView.classList.remove('hidden');
                 viewButtons.classList.add('hidden');
                 addItemContainer.classList.add('hidden');
+                logoutBtn.classList.add('hidden');
                 userInfoEl.textContent = "Logget ut";
             }
         });
