@@ -165,10 +165,18 @@
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, addDoc, onSnapshot, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { firebaseConfig } from './firebase-config.js';
         
         setLogLevel('debug');
-
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyCOvEsuUyyNwHJT3fu2BMuaLLig-9gd6NU",
+            authDomain: "buskstodo.firebaseapp.com",
+            projectId: "buskstodo",
+            storageBucket: "buskstodo.firebasestorage.app",
+            messagingSenderId: "1063381051547",
+            appId: "1:1063381051547:web:c03c2183bcfefa84f9be3e"
+        };
+        
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
